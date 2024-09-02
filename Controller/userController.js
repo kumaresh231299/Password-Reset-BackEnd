@@ -70,7 +70,7 @@ export const forgotPassword = async (req, res) => {
 
         //Generate Reset Tken
         //const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' }); //jwt token
-        const token = generateRandomString(32);     //Generate a random string for the reset token
+        const token = generateRandomString(32);      //Generate a random string for the reset token
         user.resetPasswordToken = token;
         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
         await user.save();
