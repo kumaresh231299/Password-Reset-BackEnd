@@ -1,7 +1,8 @@
 import User from "../Models/userSchema.js";
 import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
 import transporter from "../Services/Nodemailer.js";
+import generateRandomString from "../helper.js";
+//import jwt from "jsonwebtoken" //JWT token link using time only.
 
 //Registration for User
 export const registerUser = async (req, res) => {
@@ -68,7 +69,11 @@ export const forgotPassword = async (req, res) => {
         }
 
         //Generate Reset Tken
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
+        //const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' }); //jwt token
+        const token = generateRandomString(32);     //Generate a random string for the reset token
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour from now
+        await user.save();
 
         //Send Email
         const resetLink = `${process.env.FRONTEND_URL}/reset-password/${user._id}/${token}`
@@ -116,29 +121,38 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ message: "Password is required" })
         }
 
-        // Verify Token
-        let decoded;
-        try {
-            decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        } catch (error) {
-            if (error.name === 'TokenExpiredError') {
-                return res.status(400).json({ message: "Token expired" });
-            }
-            if (error.name === 'JsonWebTokenError') {
-                return res.status(400).json({ message: "Invalid token" });
-            }
-            return res.status(500).json({ message: "Token verification failed" });
-        }
-        
+        // Verify Token    //JWT Token Verification time only using.
+        // let decoded;
+        // try {
+        //     decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        // } catch (error) {
+        //     if (error.name === 'TokenExpiredError') {
+        //         return res.status(400).json({ message: "Token expired" });
+        //     }
+        //     if (error.name === 'JsonWebTokenError') {
+        //         return res.status(400).json({ message: "Invalid token" });
+        //     }
+        //     return res.status(500).json({ message: "Token verification failed" });
+        // }
+        // const user = await User.findById(decoded.id)
 
-        const user = await User.findById(decoded.id)
+        //Find the user by ID and token, and check expiration
+        const user = await User.findOne({
+            _id: id,
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }, // Ensure the token has not expired
+        })
+
 
         if (!user) {
             return res.status(400).json({ message: "Invalid , expired token or user does not exist" });
         }
 
+        //Hash new password
         const hashPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashPassword;
+        user.resetPasswordToken = undefined;    //Clear the reset token
+        user.resetPasswordExpires = undefined;  //Clear the expiration
         await user.save();
 
         // Send success notification email
