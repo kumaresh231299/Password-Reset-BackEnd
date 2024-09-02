@@ -88,6 +88,12 @@ https://password-reset-backend-kkfw.onrender.com
 
 - *The reset link identifier is validated against the database records.*
 
+## Documentation
+
+- A complete API reference with endpoint details, request examples available through Postman documentation.
+
+[Postman API Documentation](https://documenter.getpostman.com/view/35371272/2sAXjM5Xps)
+
 ## Deployment
 
 Front End Deployed URL
